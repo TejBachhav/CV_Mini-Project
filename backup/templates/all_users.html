@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Registered Users</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .user-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .user-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .user-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+        .user-info {
+            margin-top: 10px;
+        }
+        .user-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .user-detail {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .btn-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #0066cc;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 0 10px;
+        }
+        .btn:hover {
+            background-color: #004c99;
+        }
+        .view-btn {
+            display: block;
+            background-color: #0066cc;
+            color: white;
+            padding: 8px 15px;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .view-btn:hover {
+            background-color: #004c99;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>All Registered Users</h1>
+        
+        <div class="users-grid">
+            {% for user_id, profile in users.items() %}
+                <div class="user-card">
+                    <img src="{{ url_for('static', filename='uploads/' + profile.face_path.split('/')[-1]) }}" alt="{{ profile.name }}" class="user-image">
+                    <div class="user-info">
+                        <div class="user-name">{{ profile.name }}</div>
+                        <div class="user-detail"><strong>Age:</strong> {{ profile.age }}</div>
+                        <div class="user-detail"><strong>Gender:</strong> {{ profile.gender }}</div>
+                        <div class="user-detail"><strong>Registered:</strong> {{ profile.registration_date }}</div>
+                        <a href="{{ url_for('profile', user_id=user_id) }}" class="view-btn">View Profile</a>
+                    </div>
+                </div>
+            {% else %}
+                <p>No users registered yet.</p>
+            {% endfor %}
+        </div>
+        
+        <div class="btn-container">
+            <a href="/" class="btn">Back to Home</a>
+            <a href="{{ url_for('register_face') }}" class="btn">Register New User</a>
+        </div>
+    </div>
+</body>
+</html>

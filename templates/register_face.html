@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Face</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Face Registration</h1>
+        
+        <div class="rules">
+            <h3>Registration Guidelines:</h3>
+            <ul>
+                <li>Make sure only one person appears in the camera.</li>
+                <li>Ensure proper lighting and a clear background.</li>
+                <li>Remove hats, sunglasses or other face coverings.</li>
+                <li>Look directly at the camera when capturing.</li>
+            </ul>
+        </div>
+        
+        <div class="step" id="step1">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <div class="step-title">Capture Your Face</div>
+            </div>
+            
+            <div id="cameraContainer">
+                <img id="videoElement" class="hidden" src="" alt="Camera Feed">
+                <img id="capturedImage" class="hidden" src="" alt="Captured Image">
+            </div>
+            
+            <div class="camera-controls">
+                <button id="startCameraBtn" type="button">Start Camera</button>
+                <button id="captureBtn" class="hidden" type="button">Capture Face</button>
+                <button id="retakeBtn" class="hidden" type="button">Retake</button>
+                <button id="nextBtn" class="hidden" type="button">Next Step</button>
+            </div>
+            
+            <div id="faceStatus" class="status hidden"></div>
+        </div>
+        
+        <div class="step hidden" id="step2">
+            <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-title">Complete Registration</div>
+            </div>
+            
+            <form id="registrationForm">
+                <label for="user_id">User ID:</label>
+                <input type="text" id="user_id" name="user_id" required>
+                
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+                
+                <label for="age">Age:</label>
+                <input type="number" id="age" name="age" min="1" max="120" required>
+                
+                <label for="gender">Gender:</label>
+                <select id="gender" name="gender" required>
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+                
+                <div class="camera-controls">
+                    <button id="backBtn" type="button">Back</button>
+                    <button id="registerBtn" type="submit">Register</button>
+                </div>
+            </form>
+        </div>
+        
+        <div id="registrationStatus"></div>
+        
+        <div>
+            <a href="/" class="back-link">Back to Home</a>
+        </div>
+    </div>
+    
+    <script>
+        // Stop video stream when navigating away
+        window.addEventListener('beforeunload', function() {
+            if (videoElement && videoElement.src && videoElement.src.includes('/video_feed')) {
+                videoElement.src = '';
+            }
+        });
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const retakeBtn = document.getElementById('retakeBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const backBtn = document.getElementById('backBtn');
+        const videoElement = document.getElementById('videoElement');
+        const capturedImage = document.getElementById('capturedImage');
+        const faceStatus = document.getElementById('faceStatus');
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const registrationForm = document.getElementById('registrationForm');
+        const registrationStatus = document.getElementById('registrationStatus');
+        
+        // Variable to store the captured image data
+        let capturedImageData = null;
+        
+        // Function to start the camera feed
+        startCameraBtn.addEventListener('click', function() {
+            videoElement.src = '/video_feed';
+            videoElement.classList.remove('hidden');
+            startCameraBtn.classList.add('hidden');
+            captureBtn.classList.remove('hidden');
+            faceStatus.classList.add('hidden');
+            capturedImage.classList.add('hidden');
+        });
+        
+        // Function to capture image from the video feed
+        captureBtn.addEventListener('click', function() {
+            fetch('/capture_frame')
+                .then(response => response.blob())
+                .then(blob => {
+                    const imageUrl = URL.createObjectURL(blob);
+                    capturedImage.src = imageUrl;
+                    capturedImage.classList.remove('hidden');
+                    videoElement.classList.add('hidden');
+                    captureBtn.classList.add('hidden');
+                    retakeBtn.classList.remove('hidden');
+                    nextBtn.classList.remove('hidden');
+
+                    faceStatus.textContent = "Face captured successfully!";
+                    faceStatus.className = "status success";
+                    faceStatus.classList.remove('hidden');
+
+                    // Convert blob to base64 for registration
+                    const reader = new FileReader();
+                    reader.onloadend = function() { capturedImageData = reader.result; };
+                    reader.readAsDataURL(blob);
+
+                    // Stop the video feed by removing the src and hiding the element
+                    setTimeout(() => {
+                        videoElement.src = '';
+                        videoElement.classList.add('hidden');
+                    }, 500);
+                })
+                .catch(error => {
+                    faceStatus.textContent = "Error capturing image";
+                    faceStatus.className = "status error";
+                    faceStatus.classList.remove('hidden');
+                });
+        });
+        
+        // Function to retake the image
+        retakeBtn.addEventListener('click', function() {
+            videoElement.classList.remove('hidden');
+            capturedImage.classList.add('hidden');
+            captureBtn.classList.remove('hidden');
+            retakeBtn.classList.add('hidden');
+            nextBtn.classList.add('hidden');
+            faceStatus.classList.add('hidden');
+            capturedImageData = null;
+        });
+        
+        // Function to go to next step
+        nextBtn.addEventListener('click', function() {
+            step1.classList.add('hidden');
+            step2.classList.remove('hidden');
+        });
+        
+        // Function to go back to previous step
+        backBtn.addEventListener('click', function() {
+            step2.classList.add('hidden');
+            step1.classList.remove('hidden');
+        });
+        
+        // Handle registration form submission
+        registrationForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Check if we have captured an image
+            if (!capturedImageData) {
+                alert("Please capture your face image first");
+                step2.classList.add('hidden');
+                step1.classList.remove('hidden');
+                return;
+            }
+            
+            // Get user ID
+            const userId = document.getElementById('user_id').value;
+            if (!userId) {
+                alert("Please enter a user ID");
+                return;
+            }
+            
+            // Get username
+            const username = document.getElementById('username').value;
+            if (!username) {
+                alert("Please enter a username");
+                return;
+            }
+            
+            // Get age
+            const age = document.getElementById('age').value;
+            if (!age) {
+                alert("Please enter your age");
+                return;
+            }
+            
+            // Get gender
+            const gender = document.getElementById('gender').value;
+            if (!gender) {
+                alert("Please select your gender");
+                return;
+            }
+            
+            // Show processing message
+            registrationStatus.innerHTML = "Processing registration...";
+            registrationStatus.className = "status";
+            registrationStatus.style.display = "block";
+            
+            // Send registration data to server
+            fetch('/process_registration', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    image: capturedImageData,
+                    user_id: userId,
+                    username: username,
+                    age: age,
+                    gender: gender
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    registrationStatus.innerHTML = `
+                        <h3>Registration Successful!</h3>
+                        <p>${data.message}</p>
+                        <p>You can now <a href="/register_signature">register your signature</a> to complete the registration.</p>
+                    `;
+                    registrationStatus.className = "success";
+                } else {
+                    registrationStatus.innerHTML = `
+                        <h3>Registration Failed</h3>
+                        <p>${data.error}</p>
+                    `;
+                    registrationStatus.className = "error";
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                registrationStatus.innerHTML = `
+                    <h3>Registration Error</h3>
+                    <p>An unexpected error occurred. Please try again.</p>
+                `;
+                registrationStatus.className = "error";
+            });
+        });
+    </script>
+</body>
+</html>

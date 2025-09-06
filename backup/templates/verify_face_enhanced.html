@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-top: 20px;
+            text-align: left;
+            padding: 0 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #0066cc;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #004c99;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        #cameraContainer {
+            margin: 20px auto;
+            max-width: 640px;
+            position: relative;
+        }
+        #videoElement {
+            width: 100%;
+            border-radius: 5px;
+            border: 2px solid #ddd;
+        }
+        #capturedImage {
+            display: none;
+            width: 100%;
+            border-radius: 5px;
+            border: 2px solid #0066cc;
+        }
+        .camera-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .rules {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 5px solid #0066cc;
+            text-align: left;
+        }
+        .rules h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        .rules ul {
+            padding-left: 20px;
+        }
+        .hidden {
+            display: none !important;
+        }
+        #verificationResult {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Face Verification</h1>
+        
+        <div class="rules">
+            <h3>Face Guidelines:</h3>
+            <ul>
+                <li>Make sure only one person appears in the camera.</li>
+                <li>Ensure proper lighting and a clear background.</li>
+                <li>Remove hats, sunglasses or other face coverings.</li>
+                <li>Look directly at the camera when capturing.</li>
+            </ul>
+        </div>
+        
+        <form id="verifyForm">
+            <label for="username">Select User:</label>
+            <select id="username" name="username" required>
+                <option value="">-- Select a user --</option>
+                {% for username, user in users.items() %}
+                <option value="{{ username }}">{{ username }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        
+        <div id="cameraContainer">
+            <img id="videoElement" src="{{ url_for('video_feed') }}" alt="Camera Feed">
+            <img id="capturedImage" class="hidden" src="" alt="Captured Image">
+        </div>
+        
+        <div class="camera-controls">
+            <button id="captureBtn" class="capture">Capture Face</button>
+            <button id="retakeBtn" class="capture hidden">Retake</button>
+            <button id="verifyBtn" class="verify hidden">Verify</button>
+        </div>
+        
+        <div id="status" class="status"></div>
+        
+        <div id="verificationResult"></div>
+        
+        <div>
+            <a href="/" class="back-link">Back to Home</a>
+        </div>
+    </div>
+    
+    <script>
+        const captureBtn = document.getElementById('captureBtn');
+        const retakeBtn = document.getElementById('retakeBtn');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const videoElement = document.getElementById('videoElement');
+        const capturedImage = document.getElementById('capturedImage');
+        const statusDiv = document.getElementById('status');
+        const verificationResult = document.getElementById('verificationResult');
+        const usernameSelect = document.getElementById('username');
+        
+        // Function to capture image from the video feed
+        captureBtn.addEventListener('click', function() {
+            // Get the image from the video feed
+            fetch(videoElement.src)
+                .then(response => response.blob())
+                .then(blob => {
+                    const imageUrl = URL.createObjectURL(blob);
+                    
+                    // Display the captured image
+                    capturedImage.src = imageUrl;
+                    videoElement.classList.add('hidden');
+                    capturedImage.classList.remove('hidden');
+                    captureBtn.classList.add('hidden');
+                    retakeBtn.classList.remove('hidden');
+                    verifyBtn.classList.remove('hidden');
+                    
+                    statusDiv.textContent = "Face captured! Click Verify to proceed.";
+                    statusDiv.className = "status success";
+                    statusDiv.style.display = "block";
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    statusDiv.textContent = "Error capturing image";
+                    statusDiv.className = "status error";
+                    statusDiv.style.display = "block";
+                });
+        });
+        
+        // Function to retake the image
+        retakeBtn.addEventListener('click', function() {
+            videoElement.classList.remove('hidden');
+            capturedImage.classList.add('hidden');
+            captureBtn.classList.remove('hidden');
+            retakeBtn.classList.add('hidden');
+            verifyBtn.classList.add('hidden');
+            statusDiv.style.display = "none";
+            verificationResult.style.display = "none";
+        });
+        
+        // Function to verify the face
+        verifyBtn.addEventListener('click', function() {
+            // Check if username is selected
+            if (!usernameSelect.value) {
+                statusDiv.textContent = "Please select a user first";
+                statusDiv.className = "status error";
+                statusDiv.style.display = "block";
+                return;
+            }
+            
+            // Show processing status
+            statusDiv.textContent = "Processing...";
+            statusDiv.className = "status";
+            statusDiv.style.display = "block";
+            
+            // Convert the image to a data URL
+            fetch(capturedImage.src)
+                .then(response => response.blob())
+                .then(blob => {
+                    // Create FileReader to read the blob as data URL
+                    const reader = new FileReader();
+                    reader.onloadend = function() {
+                        // Send the image data to the server for verification
+                        fetch('/process_verification', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({ 
+                                image: reader.result,
+                                username: usernameSelect.value,
+                                type: 'face'
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                statusDiv.style.display = "none";
+                                verificationResult.style.display = "block";
+                                
+                                if (data.verification_success) {
+                                    verificationResult.className = "success";
+                                    verificationResult.innerHTML = `
+                                        <h3>Verification Successful!</h3>
+                                        <p>Face Score: ${(data.face_score * 100).toFixed(2)}%</p>
+                                        <p>Threshold: ${(data.threshold * 100).toFixed(2)}%</p>
+                                    `;
+                                } else {
+                                    verificationResult.className = "error";
+                                    verificationResult.innerHTML = `
+                                        <h3>Verification Failed</h3>
+                                        <p>Face Score: ${(data.face_score * 100).toFixed(2)}%</p>
+                                        <p>Threshold: ${(data.threshold * 100).toFixed(2)}%</p>
+                                        <p>The face doesn't match the registered user.</p>
+                                    `;
+                                }
+                            } else {
+                                statusDiv.textContent = data.error || "Verification failed";
+                                statusDiv.className = "status error";
+                                statusDiv.style.display = "block";
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            statusDiv.textContent = "Error during verification";
+                            statusDiv.className = "status error";
+                            statusDiv.style.display = "block";
+                        });
+                    };
+                    reader.readAsDataURL(blob);
+                });
+        });
+    </script>
+</body>
+</html>

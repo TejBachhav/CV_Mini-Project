@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Modal Biometric Authentication</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .option {
+            width: 45%;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #e9f7fe;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #0066cc;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #0066cc;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .btn:hover {
+            background-color: #004c99;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Multi-Modal Biometric Authentication</h1>
+        
+        <div class="options">
+            <div class="option">
+                <h2>Registration</h2>
+                <p>Register your biometric data for authentication.</p>
+                <a href="/register_face" class="btn">Register Face</a>
+                <a href="/register_signature" class="btn">Register Signature</a>
+            </div>
+            
+            <div class="option">
+                <h2>Verification</h2>
+                <p>Verify your identity using biometric data.</p>
+                <a href="/verify_face" class="btn">Verify Face</a>
+                <a href="/verify_signature" class="btn">Verify Signature</a>
+                <a href="/verify_combined" class="btn">Combined Verification</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

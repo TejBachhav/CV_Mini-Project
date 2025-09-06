@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Verification</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        button {
+            background-color: #0066cc;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #004c99;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        #cameraContainer {
+            margin: 20px auto;
+            max-width: 640px;
+            position: relative;
+        }
+        #videoFeed {
+            width: 100%;
+            height: 480px;
+            border-radius: 5px;
+            border: 2px solid #ddd;
+        }
+        #capturedImage {
+            display: none;
+            width: 100%;
+            border-radius: 5px;
+            border: 2px solid #0066cc;
+        }
+        .camera-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .rules {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 5px solid #0066cc;
+            text-align: left;
+        }
+        .rules h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        .rules ul {
+            padding-left: 20px;
+        }
+        .hidden {
+            display: none !important;
+        }
+        #retakeBtn {
+            display: none;
+        }
+        #verifyBtn {
+            display: none;
+        }
+        #verificationResult {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Face Verification</h1>
+        
+        <div class="rules">
+            <h3>Face Guidelines:</h3>
+            <ul>
+                <li>Make sure only one person appears in the camera.</li>
+                <li>Ensure proper lighting and a clear background.</li>
+                <li>Remove hats, sunglasses or other face coverings.</li>
+                <li>Look directly at the camera when capturing.</li>
+            </ul>
+        </div>
+        
+        <form id="verifyForm">
+            <label for="username">Select User:</label>
+            <select id="username" name="username" required>
+                <option value="">-- Select a user --</option>
+                {% for user_id, user in users.items() %}
+                <option value="{{ user_id }}">{{ user.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        
+        <div id="cameraContainer">
+            <img id="videoFeed" src="/video_feed" alt="Camera Feed" />
+            <img id="capturedImage" src="" alt="Captured Image" />
+        </div>
+        <div class="camera-controls">
+            <button id="captureBtn" type="button">Capture</button>
+            <button id="retakeBtn" type="button">Retake</button>
+            <button id="verifyBtn" type="button">Verify</button>
+        </div>
+        
+        <div id="status" class="status"></div>
+        
+        <div id="verificationResult"></div>
+        
+        <div>
+            <a href="/" class="back-link">Back to Home</a>
+        </div>
+    </div>
+    
+    <script>
+        // Stop video stream when navigating away
+        window.addEventListener('beforeunload', function() {
+            if (videoFeed && videoFeed.src && videoFeed.src.includes('/video_feed')) {
+                videoFeed.src = '';
+            }
+        });
+        const captureBtn = document.getElementById('captureBtn');
+        const retakeBtn = document.getElementById('retakeBtn');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const videoFeed = document.getElementById('videoFeed');
+        const capturedImage = document.getElementById('capturedImage');
+        const statusDiv = document.getElementById('status');
+        const verificationResult = document.getElementById('verificationResult');
+        const usernameSelect = document.getElementById('username');
+        
+        // Variable to hold captured image data URL
+        let capturedDataUrl = null;
+        
+        // Capture button click event
+        captureBtn.onclick = function() {
+            statusDiv.textContent = "Capturing image...";
+            statusDiv.className = "status";
+            statusDiv.style.display = "block";
+
+            // Request image capture from the server
+            fetch('/capture_frame')
+                .then(resp => resp.blob())
+                .then(blob => {
+                    // Create a local URL for the captured image blob
+                    const url = URL.createObjectURL(blob);
+                    capturedImage.src = url;
+                    capturedImage.style.display = 'block';
+                    videoFeed.style.display = 'none';
+                    captureBtn.style.display = 'none';
+                    retakeBtn.style.display = 'inline-block';
+                    verifyBtn.style.display = 'inline-block';
+                    statusDiv.textContent = "Image captured! Click Verify to proceed.";
+                    statusDiv.className = "status success";
+
+                    // Convert blob to base64 for verification
+                    const reader = new FileReader();
+                    reader.onloadend = function() { capturedDataUrl = reader.result; };
+                    reader.readAsDataURL(blob);
+
+                    // Stop the video feed by removing the src and hiding the element
+                    setTimeout(() => {
+                        videoFeed.src = '';
+                        videoFeed.style.display = 'none';
+                    }, 500);
+                })
+                .catch(err => {
+                    statusDiv.textContent = "Error capturing image: " + err;
+                    statusDiv.className = "status error";
+                });
+        };
+        
+        // Retake button click event
+        retakeBtn.onclick = function() {
+            capturedImage.style.display = 'none';
+            videoFeed.style.display = 'block';
+            captureBtn.style.display = 'inline-block';
+            retakeBtn.style.display = 'none';
+            verifyBtn.style.display = 'none';
+            statusDiv.style.display = 'none';
+            capturedDataUrl = null;
+        };
+        
+        // Verify button click event
+        verifyBtn.onclick = function() {
+            // Check if a user is selected
+            if (!usernameSelect.value) {
+                statusDiv.textContent = "Please select a user first";
+                statusDiv.className = "status error";
+                statusDiv.style.display = "block";
+                return;
+            }
+            
+            // Check if an image is captured
+            if (!capturedDataUrl) {
+                statusDiv.textContent = "No image captured.";
+                statusDiv.className = "status error";
+                statusDiv.style.display = "block";
+                return;
+            }
+            
+            statusDiv.textContent = "Processing...";
+            statusDiv.className = "status";
+            statusDiv.style.display = "block";
+            
+            // Send the captured image data to the server for verification
+            fetch('/process_verification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ 
+                    image: capturedDataUrl,
+                    username: usernameSelect.value,
+                    type: 'face'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.verification_success) {
+                    verificationResult.className = "success";
+                    verificationResult.innerHTML = `
+                        <h3>Verification Successful!</h3>
+                        <p>Face Score: ${(data.face_score * 100).toFixed(2)}%</p>
+                        <p>Threshold: ${(data.threshold * 100).toFixed(2)}%</p>
+                    `;
+                } else {
+                    verificationResult.className = "error";
+                    verificationResult.innerHTML = `
+                        <h3>Verification Failed</h3>
+                        <p>${data.error || 'Face does not match.'}</p>
+                    `;
+                }
+                verificationResult.style.display = 'block';
+                statusDiv.style.display = 'none';
+            })
+            .catch(error => {
+                statusDiv.textContent = "Error during verification: " + error;
+                statusDiv.className = "status error";
+                statusDiv.style.display = "block";
+            });
+        };
+    </script>
+</body>
+</html>

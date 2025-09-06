@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Signature</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-top: 20px;
+            text-align: left;
+            padding: 0 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+        }
+        .guidelines {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 5px solid #0066cc;
+            text-align: left;
+        }
+        .guidelines h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        .guidelines ul {
+            padding-left: 20px;
+        }
+        button {
+            background-color: #0066cc;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #004c99;
+        }
+        .center-align {
+            text-align: center;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .user-selection {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e9f7fe;
+            border-radius: 8px;
+        }
+        .no-users {
+            padding: 20px;
+            background-color: #f2dede;
+            color: #a94442;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Register Signature</h1>
+        
+        <div class="guidelines">
+            <h3>Guidelines for Signature:</h3>
+            <ul>
+                <li>Ensure the signature is clearly visible against a contrasting background.</li>
+                <li>The signature should be centered in the image.</li>
+                <li>Use black ink on white paper for best results.</li>
+                <li>Avoid shadows or glare on the signature.</li>
+            </ul>
+        </div>
+        
+        {% if users %}
+            <form action="/register_signature" method="post" enctype="multipart/form-data">
+                <div class="user-selection">
+                    <label for="user_id">Select User:</label>
+                    <select name="user_id" id="user_id" required>
+                        <option value="">Choose a user...</option>
+                        {% for user_id, profile in users.items() %}
+                            <option value="{{ user_id }}">{{ profile.name }} ({{ user_id }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="user-selection">
+                    <label for="signature_image">Upload Signature Image:</label>
+                    <input type="file" name="signature_image" id="signature_image" accept="image/*" required>
+                </div>
+                <div class="center-align">
+                    <button type="submit">Register Signature</button>
+                </div>
+            </form>
+        {% else %}
+            <div class="no-users">
+                <p>No users available for signature registration. Please register a face first.</p>
+                <a href="{{ url_for('register_face') }}" class="back-link">Register Face</a>
+            </div>
+        {% endif %}
+        
+        <div>
+            <a href="/" class="back-link">Back to Home</a>
+        </div>
+    </div>
+</body>
+</html>

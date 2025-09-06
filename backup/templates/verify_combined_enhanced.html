@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combined Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-top: 20px;
+            text-align: left;
+            padding: 0 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #0066cc;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #004c99;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        #cameraContainer {
+            margin: 20px auto;
+            max-width: 640px;
+            position: relative;
+        }
+        #videoElement {
+            width: 100%;
+            border-radius: 5px;
+            border: 2px solid #ddd;
+        }
+        #capturedImage {
+            display: none;
+            width: 100%;
+            border-radius: 5px;
+            border: 2px solid #0066cc;
+        }
+        .camera-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .rules {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 5px solid #0066cc;
+            text-align: left;
+        }
+        .rules h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        .rules ul {
+            padding-left: 20px;
+        }
+        .step {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .step-number {
+            width: 30px;
+            height: 30px;
+            background-color: #0066cc;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .step-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Combined Face and Signature Verification</h1>
+        
+        <div class="step" id="step1">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <div class="step-title">Face Verification</div>
+            </div>
+            
+            <div class="rules">
+                <h3>Face Guidelines:</h3>
+                <ul>
+                    <li>Make sure only one person appears in the camera.</li>
+                    <li>Ensure proper lighting and a clear background.</li>
+                    <li>Remove hats, sunglasses or other face coverings.</li>
+                </ul>
+            </div>
+            
+            <div id="cameraContainer">
+                <img id="videoElement" src="{{ url_for('video_feed') }}" alt="Camera Feed">
+                <img id="capturedImage" class="hidden" src="" alt="Captured Image">
+            </div>
+            
+            <div class="camera-controls">
+                <button id="captureBtn" type="button">Capture Face</button>
+                <button id="retakeBtn" class="hidden" type="button">Retake</button>
+                <button id="nextBtn" class="hidden" type="button">Next Step</button>
+            </div>
+            
+            <div id="faceStatus" class="status" style="display:none;"></div>
+        </div>
+        
+        <div class="step hidden" id="step2">
+            <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-title">Signature Verification</div>
+            </div>
+            
+            <div class="rules">
+                <h3>Signature Guidelines:</h3>
+                <ul>
+                    <li>Ensure the signature is clearly visible against a contrasting background.</li>
+                    <li>The signature should be centered in the image.</li>
+                    <li>Use black ink on white paper for best results.</li>
+                </ul>
+            </div>
+            
+            <form id="signatureForm" action="/verify_combined" method="post" enctype="multipart/form-data">
+                <label for="signature_image">Upload Signature Image:</label>
+                <input type="file" name="signature_image" id="signature_image" required>
+                
+                <div class="camera-controls">
+                    <button id="backBtn" type="button">Back</button>
+                    <button id="submitBtn" type="submit">Verify</button>
+                </div>
+            </form>
+        </div>
+        
+        <div>
+            <a href="/" class="back-link">Back to Home</a>
+        </div>
+    </div>
+    
+    <script>
+        const captureBtn = document.getElementById('captureBtn');
+        const retakeBtn = document.getElementById('retakeBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const backBtn = document.getElementById('backBtn');
+        const videoElement = document.getElementById('videoElement');
+        const capturedImage = document.getElementById('capturedImage');
+        const faceStatus = document.getElementById('faceStatus');
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        
+        // Function to capture image from the video feed
+        captureBtn.addEventListener('click', function() {
+            // Create a canvas to capture the image
+            const canvas = document.createElement('canvas');
+            canvas.width = videoElement.clientWidth;
+            canvas.height = videoElement.clientHeight;
+            
+            // Get image from the video feed (screenshot)
+            fetch(videoElement.src)
+                .then(response => response.blob())
+                .then(blob => {
+                    const imageUrl = URL.createObjectURL(blob);
+                    const img = new Image();
+                    img.onload = function() {
+                        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const dataUrl = canvas.toDataURL('image/jpeg');
+                        
+                        // Send the image to the server for face detection
+                        fetch('/verify_combined', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({ image: dataUrl })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Show the captured image
+                                capturedImage.src = dataUrl;
+                                videoElement.classList.add('hidden');
+                                capturedImage.classList.remove('hidden');
+                                captureBtn.classList.add('hidden');
+                                retakeBtn.classList.remove('hidden');
+                                nextBtn.classList.remove('hidden');
+                                
+                                faceStatus.textContent = "Face captured successfully!";
+                                faceStatus.className = "status success";
+                                faceStatus.style.display = "block";
+                            } else {
+                                faceStatus.textContent = data.error || "Error capturing face";
+                                faceStatus.className = "status error";
+                                faceStatus.style.display = "block";
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            faceStatus.textContent = "Error processing image";
+                            faceStatus.className = "status error";
+                            faceStatus.style.display = "block";
+                        });
+                    };
+                    img.src = imageUrl;
+                });
+        });
+        
+        // Function to retake the image
+        retakeBtn.addEventListener('click', function() {
+            videoElement.classList.remove('hidden');
+            capturedImage.classList.add('hidden');
+            captureBtn.classList.remove('hidden');
+            retakeBtn.classList.add('hidden');
+            nextBtn.classList.add('hidden');
+            faceStatus.style.display = "none";
+        });
+        
+        // Function to go to next step
+        nextBtn.addEventListener('click', function() {
+            step1.classList.add('hidden');
+            step2.classList.remove('hidden');
+        });
+        
+        // Function to go back to previous step
+        backBtn.addEventListener('click', function() {
+            step2.classList.add('hidden');
+            step1.classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Face</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-top: 20px;
+            text-align: left;
+            padding: 0 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        input[type="text"], select {
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #0066cc;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #004c99;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        #cameraContainer {
+            margin: 20px auto;
+            max-width: 640px;
+            position: relative;
+        }
+        #videoElement {
+            width: 100%;
+            border-radius: 5px;
+            border: 2px solid #ddd;
+        }
+        #capturedImage {
+            display: none;
+            width: 100%;
+            border-radius: 5px;
+            border: 2px solid #0066cc;
+        }
+        .camera-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .rules {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 5px solid #0066cc;
+            text-align: left;
+        }
+        .rules h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        .rules ul {
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Register Face</h1>
+        
+        <div class="rules">
+            <h3>Important Guidelines:</h3>
+            <ul>
+                <li>Make sure only one person appears in the camera.</li>
+                <li>Ensure proper lighting and a clear background.</li>
+                <li>Remove hats, sunglasses or other face coverings.</li>
+                <li>Look directly at the camera with a neutral expression.</li>
+            </ul>
+        </div>
+        
+        <div id="cameraContainer">
+            <img id="videoElement" src="{{ url_for('video_feed') }}" alt="Camera Feed">
+            <img id="capturedImage" src="" alt="Captured Image">
+        </div>
+        
+        <div class="camera-controls">
+            <button id="captureBtn" type="button">Capture</button>
+            <button id="retakeBtn" type="button" style="display:none">Retake</button>
+        </div>
+        
+        <div id="status" class="status" style="display:none;"></div>
+        
+        <form id="registrationForm" action="/register_face" method="post" style="display:none;">
+            <label for="name">Full Name:</label>
+            <input type="text" name="name" id="name" required>
+            
+            <label for="age">Age:</label>
+            <input type="text" name="age" id="age" required>
+            
+            <label for="gender">Gender:</label>
+            <select name="gender" id="gender" required>
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+            
+            <div style="text-align: center;">
+                <button type="submit">Complete Registration</button>
+            </div>
+        </form>
+        
+        <div>
+            <a href="/" class="back-link">Back to Home</a>
+        </div>
+    </div>
+    
+    <script>
+        const captureBtn = document.getElementById('captureBtn');
+        const retakeBtn = document.getElementById('retakeBtn');
+        const videoElement = document.getElementById('videoElement');
+        const capturedImage = document.getElementById('capturedImage');
+        const registrationForm = document.getElementById('registrationForm');
+        const statusDiv = document.getElementById('status');
+        
+        // Function to capture image from the video feed
+        captureBtn.addEventListener('click', function() {
+            // Create a canvas to capture the image
+            const canvas = document.createElement('canvas');
+            canvas.width = videoElement.clientWidth;
+            canvas.height = videoElement.clientHeight;
+            
+            // Get image from the video feed (screenshot)
+            fetch(videoElement.src)
+                .then(response => response.blob())
+                .then(blob => {
+                    const imageUrl = URL.createObjectURL(blob);
+                    const img = new Image();
+                    img.onload = function() {
+                        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const dataUrl = canvas.toDataURL('image/jpeg');
+                        
+                        // Send the image to the server for face detection
+                        fetch('/register_face', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({ image: dataUrl })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Show the captured image and registration form
+                                capturedImage.src = dataUrl;
+                                videoElement.style.display = 'none';
+                                capturedImage.style.display = 'block';
+                                captureBtn.style.display = 'none';
+                                retakeBtn.style.display = 'inline-block';
+                                registrationForm.style.display = 'block';
+                                
+                                statusDiv.textContent = "Face captured successfully!";
+                                statusDiv.className = "status success";
+                                statusDiv.style.display = "block";
+                            } else {
+                                statusDiv.textContent = data.error || "Error capturing face";
+                                statusDiv.className = "status error";
+                                statusDiv.style.display = "block";
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            statusDiv.textContent = "Error processing image";
+                            statusDiv.className = "status error";
+                            statusDiv.style.display = "block";
+                        });
+                    };
+                    img.src = imageUrl;
+                });
+        });
+        
+        // Function to retake the image
+        retakeBtn.addEventListener('click', function() {
+            videoElement.style.display = 'block';
+            capturedImage.style.display = 'none';
+            captureBtn.style.display = 'inline-block';
+            retakeBtn.style.display = 'none';
+            registrationForm.style.display = 'none';
+            statusDiv.style.display = 'none';
+        });
+    </script>
+</body>
+</html>

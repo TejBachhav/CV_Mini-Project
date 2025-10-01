@@ -274,6 +274,12 @@ def register_face():
             logger.error(f"Error during face registration: {e}")
             return str(e), 500
 
+@app.route('/stop_video_feed')
+def stop_video_feed():
+    """Endpoint to release the camera."""
+    release_camera()
+    return jsonify({"success": True, "message": "Camera released"})
+
 @app.route('/profile/<user_id>')
 def profile(user_id):
     if user_id in user_profiles:
@@ -630,56 +636,64 @@ def clean_up():
 
 @app.route('/process_registration', methods=['POST'])
 def process_registration():
+    """Process the registration form data."""
     if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({"success": False, "error": "Invalid request"}), 400
-
-    data = request.get_json()
-    user_id = data.get('user_id')
-    username = data.get('username')
-    age = data.get('age')
-    gender = data.get('gender')
-    image_data = data.get('image')
-
-    if not image_data or not username or not age or not gender or not user_id:
-        return jsonify({"success": False, "error": "Missing image, username, user_id, age, or gender"}), 400
-
+        return "Invalid request", 400
+    
     try:
-        # Decode base64 image
-        if image_data.startswith('data:image'):
-            image_data = image_data.split(',')[1]
-        image = Image.open(BytesIO(base64.b64decode(image_data)))
+        data = request.json
+        name = data.get('name')
+        age = data.get('age')
+        gender = data.get('gender')
+        user_id_provided = data.get('user_id')
+        image_data = data.get('image')
+
+        if not all([name, age, gender, user_id_provided, image_data]):
+            return jsonify({"success": False, "error": "Missing required fields"})
+
+        if user_id_provided in user_profiles:
+            return jsonify({"success": False, "error": "User ID already exists"})
+
+        # Process image
+        image_data_decoded = image_data.split(',')[1]
+        image = Image.open(BytesIO(base64.b64decode(image_data_decoded)))
         image_np = np.array(image)
         frame = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
 
-        # Face detection
+        # Check face count
         face_count, _ = detect_faces(frame)
         if face_count == 0:
             return jsonify({"success": False, "error": "No face detected"})
         elif face_count > 1:
             return jsonify({"success": False, "error": "Multiple faces detected"})
 
-        # Save image paths
-        face_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{user_id}_face.jpg")
-        cv2.imwrite(face_path, frame)
-        profile_pic_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{user_id}_profile.jpg")
-        cv2.imwrite(profile_pic_path, frame)
-
-        # Get face embedding
-        face_embedding = get_face_embedding(frame)
+        # Create user profile
         profile = {
-            'name': username,
+            'name': name,
             'age': age,
             'gender': gender,
             'registration_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'user_id': user_id,
-            'face_path': face_path,
-            'profile_pic': profile_pic_path
+            'user_id': user_id_provided
         }
-        registered_users[user_id] = face_embedding.tolist()
-        user_profiles[user_id] = profile
+
+        # Save face image
+        face_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{user_id_provided}_face.jpg")
+        cv2.imwrite(face_path, frame)
+        profile['face_path'] = face_path
+
+        # Get face embedding
+        face_embedding = get_face_embedding(frame)
+        registered_users[user_id_provided] = face_embedding.tolist()
+        user_profiles[user_id_provided] = profile
+
         save_registered_users()
 
-        return jsonify({"success": True, "message": "Face registered successfully!"})
+        # Redirect to signature registration page for the new user
+        return jsonify({
+            "success": True, 
+            "redirect_url": url_for('register_signature', user_id=user_id_provided)
+        })
+
     except Exception as e:
         logger.error(f"Error in process_registration: {e}")
         return jsonify({"success": False, "error": str(e)})

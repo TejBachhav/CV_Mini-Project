@@ -4,7 +4,7 @@ Module for face verification using pre-trained models like FaceNet or DeepFace.
 """
 
 import numpy as np
-from deepface import DeepFace
+from deepface import DeepFace # pyright: ignore[reportMissingImports]
 from sklearn.metrics.pairwise import cosine_similarity
 import cv2
 

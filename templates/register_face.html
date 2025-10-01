@@ -83,6 +83,7 @@
         // Stop video stream when navigating away
         window.addEventListener('beforeunload', function() {
             if (videoElement && videoElement.src && videoElement.src.includes('/video_feed')) {
+                fetch('/stop_video_feed');
                 videoElement.src = '';
             }
         });
@@ -233,18 +234,14 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    registrationStatus.innerHTML = `
-                        <h3>Registration Successful!</h3>
-                        <p>${data.message}</p>
-                        <p>You can now <a href="/register_signature">register your signature</a> to complete the registration.</p>
-                    `;
-                    registrationStatus.className = "success";
+                    // Redirect to signature registration page
+                    window.location.href = data.redirect_url;
                 } else {
                     registrationStatus.innerHTML = `
                         <h3>Registration Failed</h3>
                         <p>${data.error}</p>
                     `;
-                    registrationStatus.className = "error";
+                    registrationStatus.className = "status error";
                 }
             })
             .catch(error => {
